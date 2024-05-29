@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"fmt"
+	"strconv"
+
+	"k8s.io/apimachinery/pkg/labels"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
@@ -66,7 +69,17 @@ func (cs *CustomScheduler) PreFilter(ctx context.Context, state *framework.Cycle
 	// 1. extract the label of the pod
 	// 2. retrieve the pod with the same group label
 	// 3. justify if the pod can be scheduled
-
+	groupName := pod.ObjectMeta.Labels[groupNameLabel]
+	selector := labels.SelectorFromSet(labels.Set{groupNameLabel: groupName})
+	pods, _ := cs.handle.SharedInformerFactory().Core().V1().Pods().Lister().List(selector)
+	mal := pod.ObjectMeta.Labels[minAvailableLabel]
+	if mal == "" {
+		return nil, framework.NewStatus(framework.Error, "minAvailable label not found")
+	}
+	
+	if malInt, _ := strconv.Atoi(mal); len(pods) < malInt {
+		return nil, framework.NewStatus(framework.Unschedulable, "Not enough pods in the group")
+	}
 	return nil, newStatus
 }
 
@@ -83,16 +96,39 @@ func (cs *CustomScheduler) Score(ctx context.Context, state *framework.CycleStat
 	// TODO
 	// 1. retrieve the node allocatable memory
 	// 2. return the score based on the scheduler mode
-	
-	return 0, nil
+	nodeInfo, err := cs.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
+	if err != nil {
+		return 0, framework.NewStatus(framework.Error, "Invalid nodeInfo")
+	}
+	allocatableMemory := nodeInfo.Node().Status.Allocatable.Memory().Value()
+	var score int64
+	if cs.scoreMode == leastMode {
+		score = -allocatableMemory
+	} else if cs.scoreMode == mostMode {
+		score = allocatableMemory
+	}
+	return score, framework.NewStatus(framework.Success, "")
 }
 
 // ensure the scores are within the valid range
 func (cs *CustomScheduler) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	// TODO
 	// find the range of the current score and map to the valid range
+	minScore := scores[0].Score
+	maxScore := scores[0].Score
+	for _, score := range scores {
+		if score.Score < minScore {
+			minScore = score.Score
+		}
+		if score.Score > maxScore {
+			maxScore = score.Score
+		}
+	}
+	for i := range scores {
+		scores[i].Score = (scores[i].Score - minScore) * (framework.MaxNodeScore - framework.MinNodeScore) / (maxScore - minScore) 
+	}
 
-	return nil
+	return framework.NewStatus(framework.Success, "")
 }
 
 // ScoreExtensions of the Score plugin.
