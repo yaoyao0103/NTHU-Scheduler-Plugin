@@ -98,15 +98,23 @@ func (cs *CustomScheduler) Score(ctx context.Context, state *framework.CycleStat
 	// 2. return the score based on the scheduler mode
 	nodeInfo, err := cs.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
 	if err != nil {
-		return 0, framework.NewStatus(framework.Error, "Invalid nodeInfo")
+		return 0, framework.NewStatus(framework.Error, "fail to get the node")
 	}
 	allocatableMemory := nodeInfo.Node().Status.Allocatable.Memory().Value()
+	allocatedMemory := int64(0)
+	for _, podInfo := range nodeInfo.Pods {
+		for _, container := range podInfo.Pod.Spec.Containers {
+			allocatedMemory += container.Resources.Requests.Memory().Value()
+		}
+	}
+	remainingMemory := allocatableMemory - allocatedMemory
 	var score int64
 	if cs.scoreMode == leastMode {
-		score = -allocatableMemory
+		score = -remainingMemory
 	} else if cs.scoreMode == mostMode {
-		score = allocatableMemory
+		score = remainingMemory
 	}
+	log.Printf("Node %s's score: %d", nodeName, score)
 	return score, framework.NewStatus(framework.Success, "")
 }
 

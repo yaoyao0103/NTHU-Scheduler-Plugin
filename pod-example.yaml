@@ -1,20 +1,84 @@
+# test Prefilter()
+
+## pod 1, 2: the pods cannot be scheduled becuase the number of pods is less than minAvailable
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
+  name: nginx1
   labels:
     podGroup: "A"
-    minAvailable: "1"
+    minAvailable: "3"
 spec:
   schedulerName: my-scheduler
   containers:
   - name: nginx
     image: nginx:1.14.2
     ports:
-    - containerPort: 80
+    - containerPort: 80    
     resources:
       requests:
         memory: "100Mi"
       limits:
         memory: "100Mi"
-    
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx2
+  labels:
+    podGroup: "A"
+    minAvailable: "3"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "100Mi"
+      limits:
+        memory: "100Mi"
+## pod 3 can be scheduled because the number of pod is greater than minAvailable
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx3
+  labels:
+    podGroup: "A"
+    minAvailable: "3"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "1000Mi"
+      limits:
+        memory: "1000Mi"
+## pod 4 is used to test least/most mode
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx4
+  labels:
+    podGroup: "A"
+    minAvailable: "3"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "100Mi"
+      limits:
+        memory: "100Mi"
