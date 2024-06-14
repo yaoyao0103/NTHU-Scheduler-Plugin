@@ -1,0 +1,60 @@
+# test least mode
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginxa7
+  labels:
+    podGroup: "A"
+    minAvailable: "1"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "500Mi"
+      limits:
+        memory: "500Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginxa8
+  labels:
+    podGroup: "A"
+    minAvailable: "1"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "100Mi"
+      limits:
+        memory: "100Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginxa9
+  labels:
+    podGroup: "A"
+    minAvailable: "1"
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80    
+    resources:
+      requests:
+        memory: "100Mi"
+      limits:
+        memory: "100Mi"
